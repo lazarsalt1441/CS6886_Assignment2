@@ -1,0 +1,18 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Dataset / checkpoints
+cifar-10-batches-py/
+*.pth
+kd_outputs/
+qat_w025_outputs/
+
+# Experiment tracking
+wandb/
+
+# OS / temporary
+.DS_Store
+status.txt
+data_dump.txt
