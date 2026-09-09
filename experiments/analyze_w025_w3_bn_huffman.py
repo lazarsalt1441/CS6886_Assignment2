@@ -13,8 +13,8 @@ from distillation.student_model import get_student_model
 from distillation.qat_layers import convert_to_qat
 
 
-KD025_BEST = "qat_w025_outputs/student_w025_kd_best.pth"
-W3_QAT_BEST = "qat_w025_outputs/student_w025_W3A8_qat_best.pth"
+KD025_BEST = "checkpoints/student_w025_kd_best.pth"
+W3_QAT_BEST = "checkpoints/student_w025_W3A8_qat_best.pth"
 
 STUDENT_WIDTH = 0.25
 WEIGHT_BITS = 3

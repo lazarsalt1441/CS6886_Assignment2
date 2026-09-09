@@ -14,7 +14,7 @@ from compression.quantization import symmetric_quantize_per_channel
 from compression.activation_quantization import symmetric_quantize_activation
 
 
-STUDENT_CHECKPOINT = "kd_outputs/student_w0p35_kd_best.pth"
+STUDENT_CHECKPOINT = "checkpoints/student_w0p35_kd_best.pth"
 
 WEIGHT_BITS_LIST = [8, 7, 6]
 ACTIVATION_BITS_LIST = [8]

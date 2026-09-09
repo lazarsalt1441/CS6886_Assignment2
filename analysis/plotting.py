@@ -1,7 +1,7 @@
 import torch
 import matplotlib.pyplot as plt
 
-checkpoint = torch.load("best_mobilenetv2_cifar10.pth", map_location="cpu")
+checkpoint = torch.load("checkpoints/best_mobilenetv2_cifar10.pth", map_location="cpu")
 
 train_losses = checkpoint["train_losses"]
 test_losses = checkpoint["test_losses"]

@@ -27,7 +27,7 @@ NUM_WORKERS = 2
 # -------------------------
 # Model saving
 # -------------------------
-MODEL_PATH = "best_mobilenetv2_cifar10.pth"
+MODEL_PATH = "checkpoints/best_mobilenetv2_cifar10.pth"
 
 # -------------------------
 # Device

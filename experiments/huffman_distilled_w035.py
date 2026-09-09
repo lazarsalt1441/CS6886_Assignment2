@@ -20,7 +20,7 @@ from compression.quantization import symmetric_quantize_per_channel
 # ============================================================
 
 # Best width-0.35 distilled student
-STUDENT_CHECKPOINT = "kd_outputs/student_w0p35_kd_best.pth"
+STUDENT_CHECKPOINT = "checkpoints/student_w0p35_kd_best.pth"
 
 WEIGHT_BITS = 6
 ACTIVATION_BITS = 8
