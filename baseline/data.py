@@ -55,14 +55,14 @@ def get_dataloaders():
     train_dataset = datasets.CIFAR10(
         root=DATA_DIR,
         train=True,
-        download=False,
+        download=True,
         transform=train_transform
     )
 
     test_dataset = datasets.CIFAR10(
         root=DATA_DIR,
         train=False,
-        download=False,
+        download=True,
         transform=test_transform
     )
 
