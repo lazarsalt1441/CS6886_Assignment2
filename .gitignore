@@ -5,7 +5,6 @@ __pycache__/
 
 # Dataset / checkpoints
 cifar-10-batches-py/
-*.pth
 kd_outputs/
 qat_w025_outputs/
 
