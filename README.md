@@ -5,11 +5,13 @@
 **Roll No.:** EE23B049  
 **Institute:** Indian Institute of Technology Madras
 
+---
+
 ## Overview
 
 This repository contains the implementation for Assignment 2 of CS6886.
 
-The project trains and compresses a MobileNetV2 model on CIFAR-10. The implemented compression pipeline includes:
+The project trains and compresses a MobileNetV2 model on CIFAR-10. The implemented compression techniques include:
 
 - Weight quantization
 - Activation quantization
@@ -21,7 +23,7 @@ The project trains and compresses a MobileNetV2 model on CIFAR-10. The implement
 - Batch-normalization (BN) folding
 - Huffman coding
 
-The FP32 teacher model achieves **95.11% test accuracy**.
+The FP32 MobileNetV2 baseline achieves **95.11% test accuracy**.
 
 Three representative compression operating points obtained in the experiments are:
 
@@ -31,7 +33,7 @@ Three representative compression operating points obtained in the experiments ar
 | KD-0.35 + W6A8 + Huffman | 90.36% | 25.2384x |
 | KD-0.25 + W3A8 QAT + BN folding + Huffman | 88.08% | 102.16x |
 
-The **KD-0.35 + W6A8 + Huffman** configuration is used as the final practical operating point because it provides a strong trade-off between model size and classification accuracy.
+The **KD-0.35 + W6A8 + Huffman** configuration is selected as the practical operating point because it provides a strong trade-off between compression and classification accuracy.
 
 ---
 
@@ -44,13 +46,15 @@ CS6886_Assignment2/
 ├── .gitignore
 │
 ├── baseline/
+│   ├── __init__.py
 │   ├── config.py
 │   ├── data.py
+│   ├── evaluate.py
 │   ├── model.py
-│   ├── train.py
-│   └── evaluate.py
+│   └── train.py
 │
 ├── compression/
+│   ├── __init__.py
 │   ├── activation_quantization.py
 │   ├── calibrated_activation_clipping.py
 │   ├── clustered_weight_compression.py
@@ -64,6 +68,7 @@ CS6886_Assignment2/
 │   └── sensitivity_aware_clustering.py
 │
 ├── distillation/
+│   ├── __init__.py
 │   ├── distillation_utils.py
 │   ├── evaluate_distilled.py
 │   ├── kd_config.py
@@ -72,6 +77,7 @@ CS6886_Assignment2/
 │   └── train_distillation.py
 │
 ├── experiments/
+│   ├── __init__.py
 │   ├── analyze_w025_w3_bn_huffman.py
 │   ├── compress_distilled_student.py
 │   ├── huffman_distilled_w035.py
@@ -79,12 +85,14 @@ CS6886_Assignment2/
 │   └── train_w025_kd_qat.py
 │
 ├── analysis/
+│   ├── __init__.py
 │   ├── analyse_failures.py
 │   ├── analyze_layer_sensitivity.py
 │   ├── make_report_figures.py
 │   └── plotting.py
 │
 ├── tests/
+│   ├── __init__.py
 │   ├── test_baseline.py
 │   ├── test_mixed_precision_pruning.py
 │   ├── test_prune_quant.py
@@ -120,7 +128,7 @@ matplotlib   3.11.1
 wandb        0.29.0
 ```
 
-Install the required packages using:
+Install all dependencies using:
 
 ```bash
 pip install -r requirements.txt
@@ -136,15 +144,15 @@ The random seed used for the experiments is:
 SEED = 42
 ```
 
-The seed configuration is defined in:
+The seed is configured in:
 
 ```text
 baseline/config.py
 ```
 
-Random seeds are set for Python, NumPy, and PyTorch.
+Seeds are set for Python, NumPy, and PyTorch.
 
-The code automatically uses an available accelerator when configured. The reported experiments were executed using the PyTorch device configuration in `baseline/config.py`.
+The implementation automatically selects the configured PyTorch device. The experiments were run using the available accelerator through the device configuration in `baseline/config.py`.
 
 ---
 
@@ -152,11 +160,13 @@ The code automatically uses an available accelerator when configured. The report
 
 CIFAR-10 is used for all experiments.
 
-The raw CIFAR-10 dataset is **not stored in this repository**. It is downloaded/prepared through the data-loading pipeline.
+The raw dataset is **not stored in this repository**. It is downloaded automatically using `torchvision` when a training or evaluation command requiring CIFAR-10 is executed for the first time.
 
-The baseline preprocessing includes resizing CIFAR-10 images to 96x96 to provide a larger spatial resolution for the ImageNet-pretrained MobileNetV2.
+No manual dataset download is therefore required.
 
-Training-time augmentation includes:
+### Training preprocessing
+
+The training pipeline uses:
 
 - Resize to 96x96
 - Random crop with padding
@@ -164,19 +174,27 @@ Training-time augmentation includes:
 - Conversion to tensor
 - ImageNet normalization
 
-The test pipeline is deterministic and uses resizing, tensor conversion, and the same normalization.
+### Test preprocessing
+
+The test pipeline is deterministic and uses:
+
+- Resize to 96x96
+- Conversion to tensor
+- ImageNet normalization
+
+The images are resized because the model uses an ImageNet-pretrained MobileNetV2 backbone. ImageNet normalization is used to keep the input distribution consistent with the pretrained weights.
 
 ---
 
 ## Included Checkpoints
 
-The trained checkpoints required to directly reproduce the main reported evaluation results are included in:
+The trained checkpoints required to reproduce the main reported results are included directly in:
 
 ```text
 checkpoints/
 ```
 
-The included models are:
+The provided checkpoints are:
 
 ```text
 checkpoints/
@@ -186,57 +204,105 @@ checkpoints/
 └── student_w025_W3A8_qat_best.pth
 ```
 
-They correspond to:
+They are used as follows:
 
-- `best_mobilenetv2_cifar10.pth`  
-  FP32 MobileNetV2 teacher/baseline with **95.11%** test accuracy.
+### `best_mobilenetv2_cifar10.pth`
 
-- `student_w0p35_kd_best.pth`  
-  Width-0.35 knowledge-distilled student used for the **25.2384x** compression result.
-
-- `student_w025_kd_best.pth`  
-  Width-0.25 knowledge-distilled FP32 student used in the extreme-compression pipeline.
-
-- `student_w025_W3A8_qat_best.pth`  
-  Width-0.25 W3A8 quantization-aware-trained model used for the **102.16x** result.
-
-Therefore, retraining is **not required** to evaluate the main reported models.
-
-Training scripts are also included if regeneration of the checkpoints is desired.
-
----
-
-## Running the Code
-
-All commands below should be executed from the repository root.
-
-### 1. Evaluate the FP32 Baseline
-
-```bash
-python -m tests.test_baseline
-```
-
-Expected result:
+FP32 MobileNetV2 teacher/baseline.
 
 ```text
 Test accuracy: 95.11%
 ```
 
+### `student_w0p35_kd_best.pth`
+
+Width-0.35 knowledge-distilled student used for the 25.2384x compression pipeline.
+
+### `student_w025_kd_best.pth`
+
+Width-0.25 knowledge-distilled student used as part of the extreme-compression pipeline.
+
+### `student_w025_W3A8_qat_best.pth`
+
+Width-0.25 W3A8 quantization-aware-trained checkpoint used for the 102.16x compression result.
+
+The main reported models can therefore be evaluated **without retraining**.
+
+Training scripts are also included if regeneration of the checkpoints is required.
+
 ---
 
-### 2. Train the FP32 Baseline
+# Running the Code
 
-To train the baseline MobileNetV2:
+All commands below should be executed from the repository root.
+
+## Fresh Clone Setup
+
+Clone the repository:
+
+```bash
+git clone https://github.com/lazarsalt1441/CS6886_Assignment2.git
+cd CS6886_Assignment2
+```
+
+Create a Python 3.12 virtual environment:
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+```
+
+Install the dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+CIFAR-10 will be downloaded automatically the first time it is required.
+
+The provided model checkpoints are already contained in `checkpoints/`, so retraining is not required for the main evaluation commands.
+
+---
+
+## 1. Evaluate the FP32 Baseline
+
+Run:
+
+```bash
+python -m tests.test_baseline
+```
+
+Expected main result:
+
+```text
+Test accuracy: 95.11%
+```
+
+The baseline checkpoint corresponds to the best checkpoint selected by test accuracy.
+
+---
+
+## 2. Train the FP32 Baseline
+
+To regenerate the baseline model:
 
 ```bash
 python -m baseline.train
 ```
 
-The baseline training uses SGD with momentum, weight decay, and cosine-annealing learning-rate scheduling.
+The baseline uses:
+
+- MobileNetV2
+- ImageNet pretrained initialization
+- SGD
+- Momentum
+- Weight decay
+- Cosine-annealing learning-rate schedule
+- Cross-entropy loss
 
 ---
 
-### 3. Weight Quantization
+## 3. Weight Quantization
 
 To evaluate weight-only quantization:
 
@@ -244,79 +310,103 @@ To evaluate weight-only quantization:
 python -m tests.test_weight_quant
 ```
 
+Weights are quantized using symmetric per-output-channel quantization.
+
 ---
 
-### 4. Weight and Activation Quantization
+## 4. Weight and Activation Quantization
 
-To evaluate weight and activation quantization:
+Run:
 
 ```bash
 python -m tests.test_weight_activation_quant
 ```
 
+Weights use per-output-channel symmetric quantization, while activations use symmetric per-tensor quantization.
+
 ---
 
-### 5. Pruning + Quantization
+## 5. Pruning + Quantization
 
-To evaluate pruning followed by quantization:
+Run:
 
 ```bash
 python -m tests.test_prune_quant
 ```
 
-For example, the tested 30% pruning + W6A8 configuration produces approximately:
+One tested configuration uses:
+
+```text
+Pruning:        30%
+Weight bits:    6
+Activation bits: 8
+```
+
+Representative output:
 
 ```text
 FP32 baseline accuracy: 95.11%
-Pruned accuracy:        92.24%
-W6 accuracy:            91.80%
-W6A8 accuracy:          91.26%
+After pruning:          92.24%
+After W6 quantization:  91.80%
+After W6A8:             91.26%
 Final sparsity:         30.00%
 ```
 
 ---
 
-### 6. Mixed-Precision Pruning
+## 6. Mixed-Precision Pruning
+
+Run:
 
 ```bash
 python -m tests.test_mixed_precision_pruning
 ```
 
+This evaluates combinations of pruning and mixed-precision quantization.
+
 ---
 
-### 7. Compression Sweep
+## 7. Compression Sweep
 
-The compression sweep used to evaluate different combinations of weight precision, activation precision, and pruning can be run using:
+Run:
 
 ```bash
 python -m experiments.run_sweep
 ```
 
-The resulting data can be used for the Weights & Biases parallel-coordinates visualization.
+The sweep evaluates multiple combinations of:
 
-The report includes the W&B parallel-coordinates plot generated from the experimental sweep.
+- Weight bit-width
+- Activation bit-width
+- Pruning ratio
+
+The resulting experimental data is stored as CSV output and was used to generate the Weights & Biases parallel-coordinates visualization included in the report.
 
 ---
 
-### 8. Layer-Sensitivity Analysis
+## 8. Layer-Sensitivity Analysis
+
+Run:
 
 ```bash
 python -m analysis.analyze_layer_sensitivity
 ```
 
-Layer-sensitivity results are stored under:
+The sensitivity analysis measures the accuracy degradation caused by quantizing individual layers.
+
+These measurements are used to guide the sensitivity-aware mixed-precision assignment.
+
+Results are stored under:
 
 ```text
 results/
 ```
 
-These measurements are used to determine which layers are more sensitive to low-bit weight quantization and therefore guide mixed-precision assignment.
-
 ---
 
-### 9. Knowledge Distillation
+## 9. Knowledge Distillation
 
-The smaller MobileNetV2 students use knowledge distillation from the full-width FP32 teacher.
+Reduced-width MobileNetV2 students are trained using knowledge distillation from the full-width FP32 teacher.
 
 To train the standard distilled students:
 
@@ -324,17 +414,26 @@ To train the standard distilled students:
 python -m distillation.train_distillation
 ```
 
-The student architecture is implemented in:
+The student architecture is defined in:
 
 ```text
 distillation/student_model.py
 ```
 
+The student learns using both:
+
+- CIFAR-10 hard labels
+- Teacher soft targets
+
 ---
 
-### 10. Evaluate KD-0.35 + W6A8 + Huffman
+# Main Compressed Models
 
-The required width-0.35 distilled checkpoint is already included in `checkpoints/`.
+## 10. KD-0.35 + W6A8 + Huffman
+
+This is the selected practical operating point.
+
+The required width-0.35 student checkpoint is already provided in `checkpoints/`.
 
 Run:
 
@@ -342,7 +441,7 @@ Run:
 python -m experiments.huffman_distilled_w035
 ```
 
-The reported result is:
+Expected main results:
 
 ```text
 Original teacher FP32 accuracy:     95.11%
@@ -352,6 +451,11 @@ Student FP32 accuracy:              90.62%
 Student FP32 size:                  1.5600 MB
 
 W6A8 accuracy:                      90.36%
+Accuracy drop vs student:           0.26 pp
+Accuracy drop vs teacher:           4.75 pp
+
+Dense W6 student size:              0.3631 MB
+Dense W6 overall CR:                23.5010x
 
 Average Huffman bits/weight:        5.3528
 Huffman weight stream:              0.2520 MB
@@ -360,30 +464,40 @@ Scale overhead:                     0.0269 MB
 FP32 exceptions:                    0.0537 MB
 
 Huffman student size:               0.3381 MB
-Overall compression ratio:          25.2384x
+Overall CR vs original:             25.2384x
 ```
 
-This is the configuration selected as the final practical operating point.
+Thus, the original 8.5323 MB model is reduced to approximately 0.3381 MB while retaining 90.36% test accuracy.
 
 ---
 
-### 11. Train the Width-0.25 KD + QAT Model
+## 11. Train Width-0.25 KD + QAT Models
 
-To regenerate the width-0.25 knowledge-distilled and quantization-aware-trained models:
+To regenerate the width-0.25 knowledge-distilled and QAT checkpoints:
 
 ```bash
 python -m experiments.train_w025_kd_qat
 ```
 
-This performs knowledge distillation followed by QAT for the low-bit student configurations.
+This performs:
 
-Generated training checkpoints are stored separately from the provided reproducibility checkpoints.
+```text
+Teacher
+   ↓
+Width-0.25 student
+   ↓
+Knowledge distillation
+   ↓
+Quantization-aware training
+```
+
+The provided checkpoints mean that this training step is **not required** for evaluation.
 
 ---
 
-### 12. Evaluate the Extreme-Compression Model
+## 12. Extreme Compression: W3A8 + BN Folding + Huffman
 
-The required KD-0.25 and W3A8 QAT checkpoints are included in `checkpoints/`.
+The required KD and QAT checkpoints are already included in `checkpoints/`.
 
 Run:
 
@@ -391,13 +505,14 @@ Run:
 python -m experiments.analyze_w025_w3_bn_huffman
 ```
 
-The final reported result is approximately:
+Expected main results:
 
 ```text
-Teacher accuracy:              95.11%
-
 W3A8 QAT accuracy:             88.15%
-Accuracy after BN folding:     88.12%
+
+BN layers folded:             52
+Accuracy after folding:       88.12%
+Accuracy change:              -0.03 pp
 
 Average Huffman bits/weight:   2.1846
 
@@ -406,141 +521,164 @@ Final compression ratio:       102.16x
 Final accuracy:                88.08%
 ```
 
-This pipeline combines:
+The full pipeline is:
 
 ```text
 Width reduction
-    -> Knowledge distillation
-    -> W3A8 quantization-aware training
-    -> Batch-normalization folding
-    -> Huffman coding
-    -> INT16 bias quantization
+    ↓
+Knowledge distillation
+    ↓
+W3A8 quantization-aware training
+    ↓
+Batch-normalization folding
+    ↓
+Huffman coding
+    ↓
+INT16 bias quantization
 ```
+
+This produces the most aggressive compression result in the project.
 
 ---
 
-## Compression Method
+# Compression Implementation
 
-### Weight Quantization
+## Weight Quantization
 
-Weights are quantized using symmetric per-output-channel quantization.
+Weights are compressed using symmetric per-output-channel quantization.
 
-For a bit-width `b`:
+For a bit-width \(b\),
 
 ```text
 qmax = 2^(b-1) - 1
 ```
 
+For each output channel, a scale is determined from the maximum absolute weight value.
+
+The quantized integer is approximately:
+
+```text
+q = round(w / scale)
+```
+
+followed by clipping to the representable integer range.
+
 A separate scale is stored for each output channel.
 
 ---
 
-### Activation Quantization
+## Activation Quantization
 
-Activations are quantized using symmetric per-tensor quantization.
+Activations use symmetric per-tensor quantization.
 
-For the main reported configurations:
+The primary configurations use:
 
 ```text
 A8 = 8-bit activations
 ```
 
-Compared with FP32 activation storage, this gives approximately:
+Relative to FP32 storage, the ideal activation compression is:
 
 ```text
 32 / 8 = 4x
 ```
 
-activation compression, with a small scale-storage overhead.
+The reported activation compression includes the small scale-storage overhead.
 
 ---
 
-### Mixed Precision
+## Mixed-Precision Quantization
 
-Layer-sensitivity analysis is used to identify layers that are more sensitive to aggressive quantization.
+Layer-sensitivity analysis is used to determine which layers tolerate aggressive quantization.
 
-Sensitive layers receive higher weight precision, while more robust layers can use fewer bits.
+Sensitive layers are assigned higher weight precision, while robust layers can use lower bit-widths.
 
-The sensitivity-aware mixed-precision configuration achieves approximately:
+The sensitivity-aware mixed-precision configuration obtains approximately:
 
 ```text
-Accuracy:             94.04%
-Weight/model CR:      5.00x
-Activation CR:        4.00x
+Accuracy:          94.04%
+Compression ratio: 5.00x
+Activation CR:     ~4.00x
 ```
 
 ---
 
-### Knowledge Distillation
+## Knowledge Distillation
 
-Knowledge distillation is used to train reduced-width MobileNetV2 student networks from the full-width FP32 teacher.
+Knowledge distillation is used to reduce the MobileNetV2 width while recovering part of the accuracy lost through architectural compression.
 
-The students learn from both:
+The smaller student learns from:
 
-- CIFAR-10 ground-truth labels
-- Soft targets produced by the teacher network
+1. Ground-truth CIFAR-10 labels.
+2. Soft probability targets generated by the FP32 teacher.
 
-This allows substantial architectural compression while retaining more accuracy than training the small model independently.
-
----
-
-### Quantization-Aware Training
-
-For the aggressive W3A8 configuration, quantization-aware training is used to expose the model to simulated low-precision quantization during training.
-
-This allows the student to adapt its parameters to the quantization error before deployment.
-
----
-
-### Batch-Normalization Folding
-
-For the extreme-compression model, batch-normalization parameters are folded into the preceding convolution layers before final storage.
-
-For a convolution followed by batch normalization, the convolution weights and biases are transformed so that the BN operation no longer needs to be stored or executed separately.
-
-In the reported W3A8 model:
+Two reduced-width students are used in the final experiments:
 
 ```text
-BN layers folded: 52
+KD-0.35 → width multiplier 0.35
+KD-0.25 → width multiplier 0.25
 ```
 
-The accuracy changes only from:
+---
 
-```text
-88.15% -> 88.12%
-```
+## Quantization-Aware Training
 
-after folding.
+For aggressive low-bit quantization, particularly W3A8, quantization-aware training is used.
+
+Fake quantization is introduced during training so that the student network can adapt its parameters to the quantization error.
+
+This substantially improves the robustness of the width-0.25 model under 3-bit weight quantization.
 
 ---
 
-### Huffman Coding
+## Batch-Normalization Folding
 
-Huffman coding is applied to the quantized weight symbols to exploit the non-uniform distribution of quantized values.
+Batch-normalization layers are folded into the preceding convolution layers before final storage.
 
-For the selected KD-0.35 + W6A8 model:
+For a convolution followed by batch normalization, the convolution weights and biases are transformed so that the BN operation no longer needs to be represented as a separate layer.
+
+For the extreme-compression model:
 
 ```text
-Nominal weight precision:     6 bits
-Average Huffman length:       5.3528 bits/weight
+BN layers folded:       52
+Before folding:         88.15%
+After folding:          88.12%
+Accuracy change:        -0.03 pp
+```
+
+Thus, BN folding removes the need to store the separate BN parameters while producing negligible accuracy degradation.
+
+---
+
+## Huffman Coding
+
+Huffman coding is applied to the quantized weight symbols.
+
+Because quantized values do not occur with equal frequency, Huffman coding assigns shorter codes to common symbols and longer codes to less common symbols.
+
+For the KD-0.35 W6 model:
+
+```text
+Nominal precision:          6 bits/weight
+Average Huffman precision:  5.3528 bits/weight
 ```
 
 For the extreme W3 model:
 
 ```text
-Nominal weight precision:     3 bits
-Average Huffman length:       2.1846 bits/weight
+Nominal precision:          3 bits/weight
+Average Huffman precision:  2.1846 bits/weight
 ```
 
-All reported final model sizes include the relevant coding and quantization overheads rather than considering only the idealized weight bit-width.
+The Huffman metadata required for decoding is explicitly included in the final storage calculations.
 
 ---
 
-## Storage Overheads
+# Storage Overheads
 
-The reported compressed model sizes account for additional information required to reconstruct and execute the compressed model.
+The reported model sizes include the additional storage required to reconstruct the compressed models.
 
-For the selected KD-0.35 + W6A8 + Huffman model:
+For the selected **KD-0.35 + W6A8 + Huffman** model:
 
 ```text
 Huffman weight stream:       0.2520 MB
@@ -551,7 +689,7 @@ FP32 exceptions:             0.0537 MB
 Total compressed size:       0.3381 MB
 ```
 
-Compared with the original FP32 teacher:
+Therefore:
 
 ```text
 Original model size:         8.5323 MB
@@ -559,7 +697,9 @@ Compressed model size:       0.3381 MB
 Compression ratio:           25.2384x
 ```
 
-For the extreme W3A8 model, the final representation additionally quantizes the folded biases to INT16 and stores FP16 bias scales, producing:
+For the extreme model, BN folding and INT16 bias quantization are additionally applied.
+
+The final representation occupies:
 
 ```text
 Final model size:            0.083518 MB
@@ -569,7 +709,7 @@ Accuracy:                    88.08%
 
 ---
 
-## Main Results
+# Main Results
 
 | Configuration | Accuracy | Model Size | Compression Ratio |
 |---|---:|---:|---:|
@@ -578,52 +718,81 @@ Accuracy:                    88.08%
 | KD-0.35 + W6A8 + Huffman | 90.36% | 0.3381 MB | 25.2384x |
 | KD-0.25 + W3A8 QAT + BN folding + Huffman | 88.08% | 0.083518 MB | 102.16x |
 
-The KD-0.35 + W6A8 + Huffman model is selected as the preferred practical configuration because it reduces the original model from **8.5323 MB to 0.3381 MB** while retaining **90.36% test accuracy**.
+The **KD-0.35 + W6A8 + Huffman** model is selected as the final practical operating point.
 
-Its activation representation uses A8 quantization, corresponding to approximately **4x activation compression** relative to FP32.
+It provides:
+
+```text
+Test accuracy:               90.36%
+Model size:                  0.3381 MB
+Model compression ratio:     25.2384x
+Activation compression:      ~4.00x
+```
+
+relative to the original FP32 teacher.
 
 ---
 
-## Figures and Results
+# Figures
 
-Report figures are stored in:
+Figures used in the report are stored under:
 
 ```text
 figures/
 ```
 
-This includes:
+These include:
 
-- Baseline loss curve
-- Baseline accuracy curve
+- Baseline training/test loss curves
+- Baseline training/test accuracy curves
 - Misclassified examples
-- Layer-sensitivity results
-- Mixed-precision allocation
-- Pruning results
+- Layer-wise sensitivity
+- Mixed-precision weight allocation
+- Pruning versus accuracy
+- Pruning versus compression
 - Distilled-student compression results
-- Huffman statistics
+- Huffman layer statistics
 - Accuracy/compression Pareto plot
 - W&B parallel-coordinates plot
 
-Numerical experimental results are stored as CSV files under:
+---
+
+# Results
+
+Numerical results are stored under:
 
 ```text
 results/
 ```
 
+The CSV files contain results from:
+
+- Quantization sweeps
+- Pruning experiments
+- Layer-sensitivity analysis
+- Mixed-precision search
+- Distilled-student compression
+- Huffman compression
+- Activation clipping
+- Clustering experiments
+
 ---
 
-## Notes
+# Notes
 
+- CIFAR-10 is automatically downloaded by `torchvision` on first use.
 - Raw CIFAR-10 data is not committed to the repository.
-- Python virtual environments and cache files are excluded.
-- W&B local run data is excluded.
-- Training-output directories are excluded where appropriate.
-- The four checkpoints required for direct evaluation of the principal reported models are included under `checkpoints/`.
-- All reported compression sizes include the stated storage overheads.
+- Four trained checkpoints required for direct evaluation of the main reported models are included under `checkpoints/`.
+- Retraining is not required to reproduce the main evaluation results.
+- Training scripts are included to regenerate the models if required.
+- Python virtual environments are excluded from Git.
+- Python cache files are excluded from Git.
+- Local W&B run data is excluded from Git.
+- Generated training-output directories are excluded where appropriate.
+- All final compressed model sizes include the stated metadata and quantization overheads.
 
 ---
 
-## GitHub Repository
+# GitHub Repository
 
 https://github.com/lazarsalt1441/CS6886_Assignment2
